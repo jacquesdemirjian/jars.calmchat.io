@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CalmChat AI 🌸</title>
+<style>
+body {
+  background: linear-gradient(to bottom right, #a2c2e2, #f6d5f7);
+  font-family: "Poppins", sans-serif;
+  display:flex; justify-content:center; align-items:center; height:100vh; margin:0;
+}
+.chat-container {
+  background:#ffffffd9; width:420px; height:600px;
+  display:flex; flex-direction:column; border-radius:20px; box-shadow:0 8px 25px rgba(0,0,0,0.2); overflow:hidden;
+}
+.chat-header {
+  background:#8ab6d6; color:white; text-align:center; padding:15px; font-size:20px; font-weight:600;
+}
+.chat-box {
+  flex:1; padding:15px; overflow-y:auto; display:flex; flex-direction:column;
+}
+.chat-message { margin-bottom:12px; line-height:1.5; max-width:80%; padding:10px 15px; border-radius:12px; word-wrap:break-word; }
+.bot { align-self:flex-start; background:#e0ecf8; }
+.user { align-self:flex-end; background:#c1eac5; }
+.input-area { display:flex; border-top:2px solid #dcdcdc; }
+.input-area input { flex:1; border:none; padding:12px; font-size:16px; outline:none; border-radius:0 0 0 20px; }
+.input-area button { background:#8ab6d6; border:none; color:white; padding:0 20px; font-size:16px; border-radius:0 0 20px 0; cursor:pointer; }
+.input-area button:hover { background:#6fa3c8; }
+</style>
+</head>
+<body>
+
+<div class="chat-container">
+  <div class="chat-header">🌿 CalmChat AI</div>
+  <div class="chat-box" id="chatBox">
+    <div class="chat-message bot">Hi! I'm CalmChat, your friendly AI. How are you feeling today?</div>
+  </div>
+  <div class="input-area">
+    <input type="text" id="userInput" placeholder="Type your message..." />
+    <button onclick="sendMessage()">Send</button>
+  </div>
+</div>
+
+<script>
+const chatBox = document.getElementById("chatBox");
+const userInput = document.getElementById("userInput");
+
+// ⚡ Your OpenAI API key (for local use only!)
+const OPENAI_API_KEY = "YOUR_OPENAI_API_KEY_HERE";
+
+let chatHistory = [
+  {role:"system", content:"You are CalmChat, a friendly AI that talks gently, supports adolescents with stress, emotions, and casual conversation."}
+];
+
+// Grammar correction (basic)
+function correctGrammar(text){
+  text = text.trim();
+  if(text.length>0) text = text.charAt(0).toUpperCase() + text.slice(1);
+  if(!/[.?!]$/.test(text)) text += ".";
+  text = text.replace(/\s+/g," ");
+  return text;
+}
+
+function appendMessage(sender,text){
+  const msg = document.createElement("div");
+  msg.classList.add("chat-message",sender);
+  msg.textContent = text;
+  chatBox.appendChild(msg);
+  chatBox.scrollTop = chatBox.scrollHeight;
+}
+
+async function sendMessage(){
+  let message = userInput.value;
+  if(!message) return;
+  message = correctGrammar(message);
+  appendMessage("user", message);
+  userInput.value="";
+  chatHistory.push({role:"user", content: message});
+
+  // Typing animation
+  appendMessage("bot", "...");
+  chatBox.scrollTop = chatBox.scrollHeight;
+
+  try {
+    const res = await fetch("https://api.openai.com/v1/chat/completions", {
+      method:"POST",
+      headers:{
+        "Content-Type":"application/json",
+        "Authorization": `Bearer ${OPENAI_API_KEY}`
+      },
+      body: JSON.stringify({
+        model:"gpt-4-turbo",
+        messages: chatHistory,
+        max_tokens:250
+      })
+    });
+    const data = await res.json();
+    const reply = data.choices[0].message.content;
+    chatHistory.push({role:"assistant", content: reply});
+
+    // remove typing animation
+    chatBox.lastChild.remove();
+    appendMessage("bot", reply);
+  } catch(err){
+    chatBox.lastChild.remove();
+    appendMessage("bot","Sorry, something went wrong 😔");
+    console.error(err);
+  }
+}
+</script>
+
+</body>
+</html>
